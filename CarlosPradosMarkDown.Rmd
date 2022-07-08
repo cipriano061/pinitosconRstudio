@@ -40,12 +40,13 @@ TablaPrueba2 <- TablaPrueba %>%
   select(-Est)
 
 f1 <- st_read(dsn=".",layer="14_01_CtxLimites")
-cod_ine_andalucia <- c("04", "11" ,"14", "18", "21", "23", "29", "41")
+#cod_ine_andalucia <- c("04", "11" ,"14", "18", "21", "23", "29", "41")
+codigo_ine_andalucia <- read_excel("INE_Andalucia_SP.xlsx")
 
 andalucia <- f1 %>% 
   filter(pais == "España") %>% 
   filter(tipo_dem == "Provincia") %>% 
-  filter(cod_ine %in% cod_ine_andalucia)
+  filter(cod_ine %in% codigo_ine_andalucia$CPRO)
 
 
 INE_Andalucia <- read_excel("INE_Andalucia.xlsx")
