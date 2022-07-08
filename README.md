@@ -1,0 +1,2 @@
+# pinitosconRstudio
+Pruebas con RStudio
