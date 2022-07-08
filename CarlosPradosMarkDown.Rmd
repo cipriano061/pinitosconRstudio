@@ -1,0 +1,130 @@
+---
+title: "CarlosPradosMarkDown"
+author: "Carlos Manuel Prados Arredondo"
+date: '2022-07-06'
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+  word_document:
+    reference_doc: plantilla.docx
+    toc: true
+    toc_depth: 3
+  pdf_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(gtsummary)
+library(ggplot2)
+library(dplyr)
+library(esquisse)
+library(Rcmdr)
+library(survival)
+library(survminer)
+library(sf)
+library(readxl)
+
+TablaPrueba <- read_excel("TablaPrueba.xlsx")
+ReducirTabla <- TablaPrueba %>% 
+  select(Tratamiento,Supervivencia) %>% 
+  mutate(Supervivencia = replace(Supervivencia, Supervivencia == 0, "Fallecidos")) %>% 
+  mutate(Supervivencia = replace(Supervivencia, Supervivencia == 1, "Vivos")) %>% 
+  group_by(Tratamiento, Supervivencia) %>% 
+  summarise(Casos = n())
+
+TablaPrueba2 <- TablaPrueba %>% 
+  select(-Est)
+
+f1 <- st_read(dsn=".",layer="14_01_CtxLimites")
+cod_ine_andalucia <- c("04", "11" ,"14", "18", "21", "23", "29", "41")
+
+andalucia <- f1 %>% 
+  filter(pais == "España") %>% 
+  filter(tipo_dem == "Provincia") %>% 
+  filter(cod_ine %in% cod_ine_andalucia)
+
+
+INE_Andalucia <- read_excel("INE_Andalucia.xlsx")
+colnames(INE_Andalucia)[1] <- "cod_ine"
+
+andaluciaPoblacion <- merge(andalucia,INE_Andalucia, all.x=TRUE,   by = "cod_ine")
+```
+
+## R Markdown
+
+### Gráficas de Mis Datos Inventados
+
+Soy un médico del 061 que no sabe cómo ha acabado haciendo este curso y aquí estamos defendiendonos panza arriba con todo este tinglao.
+
+La tabla de excel me la he construido con números completamente aleatorios.
+
+```{r PrimerGrafico, echo=FALSE, fig.align='center'}
+ggplot(ReducirTabla) +
+ aes(x = Tratamiento, y = Casos, fill = Supervivencia) +
+ geom_col() +
+ scale_fill_hue(direction = 1) +
+ labs(x = "Tratamientos", title = "Distribución de Casos", fill = "Supervivencia") +
+ theme_void()
+
+```
+
+
+
+### Características de mi tabla falsa con una hipótesis de test disparatada
+
+```{r echo=FALSE, fig.align='center', message=FALSE}
+TablaPrueba2 %>% 
+  mutate(Supervivencia = replace(Supervivencia, Supervivencia == 0, "Fallecidos")) %>% 
+  mutate(Supervivencia = replace(Supervivencia, Supervivencia == 1, "Vivos")) %>% 
+  gtsummary::tbl_summary(by = Supervivencia) %>% 
+  add_n() %>% 
+  add_p()
+```
+
+
+
+
+### Gráfico de Cajas
+
+```{r echo=FALSE, fig.align='center'}
+names(TablaPrueba2) <- make.names(names(TablaPrueba2))
+boxplot(Seguimiento~Estadiaje, data=TablaPrueba2, 
+  id=list(method="y"))
+```
+
+
+
+### Gráfico de Supervivencia
+
+```{r grafico_Supervivencia, fig.height=7, echo=FALSE, fig.align='center'}
+
+Survfit <- survfit(Surv(Seguimiento, Supervivencia) ~ Tratamiento, 
+  conf.type="log", conf.int=0.95, type="kaplan-meier", error="greenwood", 
+  data=TablaPrueba2)
+
+survminer::ggsurvplot(Survfit,
+                      conf.int = TRUE,
+                      pval = TRUE,
+                      risk.table = TRUE)
+
+```
+
+
+
+### Población de Andalucía por Provincia
+
+```{r echo=FALSE, fig.align='center'}
+
+ggplot(andaluciaPoblacion) +
+    aes(fill = Poblacion, group = tipo_dem) +
+    geom_sf(size = 1.2) +
+    geom_sf_label(aes(label = nombre)) +
+    scale_fill_distiller(palette = "BuGn", direction = 1) +
+    labs(subtitle = "Población de Andalucía") +
+    theme_minimal()
+```
+
